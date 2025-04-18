@@ -40,7 +40,11 @@ pipeline {
         script {
           def commitHash = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
           env.IMAGE_TAG = commitHash
-          sh "docker build -t ${ECR_REPO}:${env.IMAGE_TAG} ."
+
+          sh """
+            docker build -t ${ECR_REPO}:${env.IMAGE_TAG} .
+            docker tag ${ECR_REPO}:${env.IMAGE_TAG} ${ECR_REPO}:latest
+          """
         }
       }
     }
@@ -51,6 +55,7 @@ pipeline {
           sh """
             aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO}
             docker push ${ECR_REPO}:${IMAGE_TAG}
+            docker push ${ECR_REPO}:latest
           """
         }
       }
@@ -64,16 +69,23 @@ pipeline {
         script {
           sh """
             ssh -o StrictHostKeyChecking=no -i ${SSH_KEY} ubuntu@${EC2_HOST} '
-              aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REPO}
-              sudo docker pull ${ECR_REPO}:${IMAGE_TAG}
+              set -e
 
+              echo "[+] Logging in to ECR"
+              aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REPO}
+
+              echo "[+] Stopping and removing old container"
               sudo docker stop backend-demo || true
               sudo docker rm backend-demo || true
-              sleep 5
 
-              sudo docker run -d --name backend-demo -p 3000:3000 ${ECR_REPO}:${IMAGE_TAG}
+              echo "[+] Pruning old images"
+              sudo docker image prune -af || true
 
-              sudo docker image prune -af
+              echo "[+] Pulling latest image"
+              sudo docker pull ${ECR_REPO}:latest
+
+              echo "[+] Running container from latest image"
+              sudo docker run -d --name backend-demo -p 3000:3000 ${ECR_REPO}:latest
             '
           """
         }
