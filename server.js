@@ -10,11 +10,11 @@ app.use(bodyParser.json());
 
 // Create a connection to the MySQL database
 const mysqlConfig = {
-  host: process.env.DB_HOST || "db",
-  port: process.env.DB_PORT || "3306",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "pass123",
-  database: process.env.DB_NAME || "appdb",
+  host: "demo-db.cf8u4ugo4i4i.us-east-1.rds.amazonaws.com",
+  port: "3306",
+  user: "admin",
+  password: "EdMuNd123456",
+  database: "appdb",
 };
 
 let con = null;
