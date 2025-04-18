@@ -3,7 +3,7 @@ const mysql = require("mysql2");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 
-// Create the Express app
+
 const app = express();
 
 // ✅ CORS setup to allow only your frontend
