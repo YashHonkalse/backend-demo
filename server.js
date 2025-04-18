@@ -8,7 +8,7 @@ const app = express();
 
 // ✅ CORS setup to allow only your frontend
 app.use(cors({
-  origin: "http://18.212.172.14:3000", // <-- Your frontend URL
+  origin: "http://3.86.43.156:3000", // <-- Your frontend URL
   methods: ["GET", "POST"]
 }));
 
