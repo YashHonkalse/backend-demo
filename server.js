@@ -1,14 +1,20 @@
 const express = require("express");
 const mysql = require("mysql2");
-var cors = require("cors");
+const cors = require("cors");
 const bodyParser = require("body-parser");
 
 // Create the Express app
 const app = express();
-app.use(cors());
+
+// ✅ CORS setup to allow only your frontend
+app.use(cors({
+  origin: "http://18.212.172.14:3000", // <-- Your frontend URL
+  methods: ["GET", "POST"]
+}));
+
 app.use(bodyParser.json());
 
-// Create a connection to the MySQL database
+// MySQL DB Config
 const mysqlConfig = {
   host: "demo-db.cf8u4ugo4i4i.us-east-1.rds.amazonaws.com",
   port: "3306",
@@ -18,6 +24,7 @@ const mysqlConfig = {
 };
 
 let con = null;
+
 const databaseInit = () => {
   con = mysql.createConnection(mysqlConfig);
   con.connect((err) => {
@@ -52,7 +59,7 @@ const createTable = () => {
   );
 };
 
-// GET request
+// Routes
 app.get("/user", (req, res) => {
   databaseInit();
   con.query("SELECT * FROM apptb", (err, results) => {
@@ -65,7 +72,6 @@ app.get("/user", (req, res) => {
   });
 });
 
-// POST request
 app.post("/user", (req, res) => {
   con.query(
     "INSERT INTO apptb (name) VALUES (?)",
@@ -73,7 +79,7 @@ app.post("/user", (req, res) => {
     (err, results) => {
       if (err) {
         console.error(err);
-        res.status(500).send("Error retrieving data from database");
+        res.status(500).send("Error inserting data into database");
       } else {
         res.json(results);
       }
