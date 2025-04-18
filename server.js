@@ -3,13 +3,13 @@ const mysql = require("mysql2");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 
-
 const app = express();
 
 // ✅ CORS setup to allow only your frontend
 app.use(cors({
   origin: "http://18.212.172.14:3000", // <-- Your frontend URL
-  methods: ["GET", "POST"]
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"],  // Ensure this is added to allow body parsing
 }));
 
 app.use(bodyParser.json());
@@ -23,46 +23,12 @@ const mysqlConfig = {
   database: "appdb",
 };
 
-let con = null;
-
-const databaseInit = () => {
-  con = mysql.createConnection(mysqlConfig);
-  con.connect((err) => {
-    if (err) {
-      console.error("Error connecting to the database: ", err);
-      return;
-    }
-    console.log("Connected to the database");
-  });
-};
-
-const createDatabase = () => {
-  con.query("CREATE DATABASE IF NOT EXISTS appdb", (err, results) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    console.log("Database created successfully");
-  });
-};
-
-const createTable = () => {
-  con.query(
-    "CREATE TABLE IF NOT EXISTS apptb (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255))",
-    (err, results) => {
-      if (err) {
-        console.error(err);
-        return;
-      }
-      console.log("Table created successfully");
-    }
-  );
-};
+// Using connection pooling for better performance
+const pool = mysql.createPool(mysqlConfig);
 
 // Routes
 app.get("/user", (req, res) => {
-  databaseInit();
-  con.query("SELECT * FROM apptb", (err, results) => {
+  pool.query("SELECT * FROM apptb", (err, results) => {
     if (err) {
       console.error(err);
       res.status(500).send("Error retrieving data from database");
@@ -73,7 +39,7 @@ app.get("/user", (req, res) => {
 });
 
 app.post("/user", (req, res) => {
-  con.query(
+  pool.query(
     "INSERT INTO apptb (name) VALUES (?)",
     [req.body.data],
     (err, results) => {
@@ -88,15 +54,28 @@ app.post("/user", (req, res) => {
 });
 
 app.post("/dbinit", (req, res) => {
-  databaseInit();
-  createDatabase();
-  res.json("Database created successfully");
+  pool.query("CREATE DATABASE IF NOT EXISTS appdb", (err, results) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send("Error creating database");
+    } else {
+      res.json("Database created successfully");
+    }
+  });
 });
 
 app.post("/tbinit", (req, res) => {
-  databaseInit();
-  createTable();
-  res.json("Table created successfully");
+  pool.query(
+    "CREATE TABLE IF NOT EXISTS apptb (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255))",
+    (err, results) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send("Error creating table");
+      } else {
+        res.json("Table created successfully");
+      }
+    }
+  );
 });
 
 // Start the server
